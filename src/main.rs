@@ -21,26 +21,43 @@ fn main() {
     let mut texture = texture_creator.create_texture_streaming(sdl2::pixels::PixelFormatEnum::ARGB8888, WIDTH, HEIGHT).unwrap();
 
     let mut event_pump = sdl_context.event_pump().unwrap();
-    let mut frame = 0;
-    //let mut pxl_vec: [u8; (WIDTH * HEIGHT * 4) as usize]= [255; (WIDTH * HEIGHT * 4) as usize];
-    let mut pxl_vec = vec![255u8; (WIDTH * HEIGHT * 4) as usize].into_boxed_slice();
 
-    'running: loop {
-        frame = (frame + 1) % 255;
-        for i in 0..HEIGHT {
-            for j in 0..WIDTH {
-                let offset:usize = (i * WIDTH * 4 + j * 4) as usize;
-                pxl_vec[offset    ] = frame;
-                pxl_vec[offset + 1] = frame;
-                pxl_vec[offset + 2] = frame;
-                pxl_vec[offset + 3] = 255;
+    let mut pxl_vec = vec![0; (WIDTH * HEIGHT) as usize].into_boxed_slice();
+    let mut tmp_vec = vec![0; (WIDTH * HEIGHT) as usize].into_boxed_slice();
+    for i in 0..HEIGHT {
+        for j in 0..WIDTH {
+            pxl_vec[(i * WIDTH + j) as usize] = {
+                let num = rand::random::<f64>();
+                if num >= 0.5 { 1 }
+                else{ 0 }
             }
         }
+    }
+    'running: loop {
+        for i in 0..HEIGHT {
+            for j in 0..WIDTH {
+                let mut neigbour_cells = 0;            
+                if i > 0 && j > 0 {neigbour_cells += pxl_vec[((i - 1) * WIDTH + j - 1) as usize];}
+                if i > 0 {neigbour_cells += pxl_vec[((i - 1) * WIDTH + j) as usize];}
+                if i > 0 && j < WIDTH - 1 {neigbour_cells += pxl_vec[((i - 1) * WIDTH + j + 1) as usize];}
+                if j > 0 {neigbour_cells += pxl_vec[(i * WIDTH + j - 1) as usize];}
+                if j < WIDTH - 1 {neigbour_cells += pxl_vec[(i * WIDTH + j + 1) as usize];}
+                if i < HEIGHT - 1 && j > 0 {neigbour_cells += pxl_vec[((i + 1) * WIDTH + j - 1) as usize];}
+                if i < HEIGHT - 1 {neigbour_cells += pxl_vec[((i + 1) * WIDTH + j) as usize];}
+                if i < HEIGHT - 1 && j < WIDTH - 1 {neigbour_cells += pxl_vec[((i + 1) * WIDTH + j + 1) as usize];}
+                if neigbour_cells == 3 || (neigbour_cells == 2 && pxl_vec[(i * WIDTH + j) as usize] == 1) { 
+                    tmp_vec[(i * WIDTH + j) as usize] = 1;
+                } else {
+                    tmp_vec[(i * WIDTH + j) as usize] = 0;
+                }
+            }
+        }
+        pxl_vec.copy_from_slice(&tmp_vec);
         texture.with_lock(
             None,
             |bytearray, _|{
                 for i in 0..bytearray.len() {
-                    bytearray[i] = pxl_vec[i];
+                    bytearray[i] = pxl_vec[i / 4] * 255;
                 }
             }
         ).unwrap();
